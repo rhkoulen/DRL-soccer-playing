@@ -16,7 +16,7 @@ if __name__ == "__main__":
     ray.init(
         include_dashboard=False,
         _node_ip_address=node_ip,
-        num_cpus=9,
+        num_cpus=7,
         num_gpus=1,
     )
 
