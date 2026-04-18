@@ -1,5 +1,6 @@
 import numpy as np
 import gym
+from utils import RLLibWrapper
 
 # Observation structure: 336 dims = 42 rays × 8 values per ray
 # Per ray: [ball, blue_goal, purple_goal, blue_agent, purple_agent, wall, has_hit, distance]
@@ -17,7 +18,7 @@ PURPLE_AGENT_TAG_IDX = 4 # tag index within each ray for a purple-team agent
 SPREAD_THRESHOLD = 0.55
 
 
-class RewardShapingWrapper(gym.Wrapper):
+class RewardShapingWrapper(RLLibWrapper):
     """
     Wraps a soccer_twos multiagent env to add dense reward shaping on top of
     the sparse 1 goal reward.

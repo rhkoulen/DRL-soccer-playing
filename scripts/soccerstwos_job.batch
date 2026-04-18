@@ -5,7 +5,7 @@
 #SBATCH --ntasks=1
 #SBATCH --cpus-per-task=10
 #SBATCH --mem=60G
-#SBATCH --gres=gpu:A100:1
+#SBATCH --gres=gpu:v100:1
 #SBATCH -t12:00:00
 #SBATCH --output=soccertwos-%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
