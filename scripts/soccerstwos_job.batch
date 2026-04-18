@@ -16,8 +16,8 @@
 #SBATCH --mail-user=sbanerjee332@gatech.edu
 
 source ~/miniconda3/etc/profile.d/conda.sh
-conda activate soccerstwos
+conda activate soccertwos
 
 # Run the training script
-python example_ray_ppo_sp_still.py
+python ../example_ray_ppo_sp_still.py
 
