@@ -13,7 +13,7 @@
 #SBATCH -t12:00:00
 #SBATCH --output=soccerstwos-%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
-#SBATCH --mail-user=gburbell3@gatech.edu
+#SBATCH --mail-user=sbanerjee332@gatech.edu
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate soccerstwos
