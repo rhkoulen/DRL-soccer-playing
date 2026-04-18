@@ -1,6 +1,7 @@
 import ray
 from ray import tune
 from soccer_twos import EnvType
+import sys
 
 from utils import create_rllib_env
 
@@ -9,7 +10,15 @@ NUM_ENVS_PER_WORKER = 3
 
 
 if __name__ == "__main__":
-    ray.init(include_dashboard=False, _node_ip_address="127.0.0.1")
+    node_ip = "127.0.0.1"
+    if "--node-ip" in sys.argv:
+        node_ip = sys.argv[sys.argv.index("--node-ip") + 1]
+    ray.init(
+        include_dashboard=False,
+        _node_ip_address=node_ip,
+        num_cpus=9,
+        num_gpus=1,
+    )
 
     tune.registry.register_env("Soccer", create_rllib_env)
 

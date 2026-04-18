@@ -1,25 +1,19 @@
 #!/bin/bash
 
-# Soccer Twos RL Training Job Example Batch Script for PACE
-# Author: Mili Das
-# Date: 2026
-
-# Replace gburdell3 with your GT username.
-# Replace the training script name with the actual script you want to run.
-
-#SBATCH --job-name=soccerstwos
-#SBATCH -N4 --ntasks-per-node=8
-#SBATCH --mem-per-cpu=6G
+#SBATCH --job-name=soccertwos
+#SBATCH -N1
+#SBATCH --ntasks=1
+#SBATCH --cpus-per-task=10
+#SBATCH --mem=60G
+#SBATCH --gres=gpu:A100:1
 #SBATCH -t12:00:00
-#SBATCH --output=soccerstwos-%j.out
+#SBATCH --output=soccertwos-%j.out
 #SBATCH --mail-type=BEGIN,END,FAIL
 #SBATCH --mail-user=sbanerjee332@gatech.edu
-
-export RAY_DISABLE_IMPORT_WARNING=1
 
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate soccertwos
 
-# Run the training script
-python ../example_ray_ppo_sp_still.py
+node_ip=$(hostname -I | awk '{print $1}')
 
+python ../example_ray_ppo_sp_still.py --node-ip $node_ip
