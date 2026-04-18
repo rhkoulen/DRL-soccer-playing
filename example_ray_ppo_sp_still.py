@@ -16,7 +16,7 @@ if __name__ == "__main__":
     ray.init(
         include_dashboard=False,
         _node_ip_address=node_ip,
-        num_cpus=5,
+        num_cpus=3,
         num_gpus=1,
     )
 
@@ -28,7 +28,7 @@ if __name__ == "__main__":
         config={
             # system settings
             "num_gpus": 1,
-            "num_workers": 4,
+            "num_workers": 2,
             "num_envs_per_worker": NUM_ENVS_PER_WORKER,
             "log_level": "INFO",
             "framework": "torch",

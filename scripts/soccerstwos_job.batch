@@ -3,8 +3,8 @@
 #SBATCH --job-name=soccertwos
 #SBATCH -N1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=6
-#SBATCH --mem=40G
+#SBATCH --cpus-per-task=4
+#SBATCH --mem=16G
 #SBATCH --gres=gpu:v100:1
 #SBATCH -t12:00:00
 #SBATCH --output=soccertwos-%j.out
@@ -15,5 +15,4 @@ source ~/miniconda3/etc/profile.d/conda.sh
 conda activate soccertwos
 
 node_ip=$(hostname -I | awk '{print $1}')
-
 python ../example_ray_ppo_sp_still.py --node-ip $node_ip
