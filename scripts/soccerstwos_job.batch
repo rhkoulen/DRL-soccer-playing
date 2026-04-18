@@ -3,8 +3,8 @@
 #SBATCH --job-name=soccertwos
 #SBATCH -N1
 #SBATCH --ntasks=1
-#SBATCH --cpus-per-task=8
-#SBATCH --mem=48G
+#SBATCH --cpus-per-task=6
+#SBATCH --mem=40G
 #SBATCH --gres=gpu:v100:1
 #SBATCH -t12:00:00
 #SBATCH --output=soccertwos-%j.out
