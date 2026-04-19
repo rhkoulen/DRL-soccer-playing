@@ -14,5 +14,9 @@
 source ~/miniconda3/etc/profile.d/conda.sh
 conda activate soccertwos
 
+export DISPLAY=:0
+Xvfb :0 -screen 0 1024x768x24 &
+sleep 2
+
 node_ip=$(hostname -I | awk '{print $1}')
 python ../example_ray_ppo_sp_still.py --node-ip $node_ip

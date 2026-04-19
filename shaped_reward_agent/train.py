@@ -1,6 +1,8 @@
 import json
 import os
+import sys
 import shutil
+sys.path.append(os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
 
 import matplotlib.pyplot as plt
 import numpy as np
@@ -42,7 +44,7 @@ class SelfPlayCallback(DefaultCallbacks):
             })
 
 if __name__ == "__main__":
-    ray.init()
+    ray.init(include_dashboard=False, num_gpus=0)
 
     tune.registry.register_env("SoccerShaped", create_shaped_env)
 
@@ -68,8 +70,8 @@ if __name__ == "__main__":
         name="PPO_shaped_selfplay",
         config={
             # --- system ---
-            "num_gpus": 1,
-            "num_workers": 8,
+            "num_gpus": 0,
+            "num_workers": 4,
             "num_envs_per_worker": NUM_ENVS_PER_WORKER,
             "log_level": "INFO",
             "framework": "torch",
@@ -85,7 +87,7 @@ if __name__ == "__main__":
                     "opponent_2": (None, obs_space, act_space, {}),
                     "opponent_3": (None, obs_space, act_space, {}),
                 },
-                "policy_mapping_fn": tune.function(policy_mapping_fn),
+                "policy_mapping_fn": policy_mapping_fn,
                 "policies_to_train": ["default"],
             },
             # --- PPO network (matches PPONetwork hidden size) ---
@@ -109,7 +111,7 @@ if __name__ == "__main__":
         },
         stop={
             "timesteps_total": 15_000_000,
-            "time_total_s": 7200,     # 2 hour hard cap
+            # "time_total_s": 7200,     # 2 hour hard cap
         },
         checkpoint_freq=50,
         checkpoint_at_end=True,

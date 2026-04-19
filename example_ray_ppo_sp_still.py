@@ -10,14 +10,19 @@ NUM_ENVS_PER_WORKER = 3
 
 
 if __name__ == "__main__":
-    node_ip = "127.0.0.1"
-    if "--node-ip" in sys.argv:
-        node_ip = sys.argv[sys.argv.index("--node-ip") + 1]
+    # node_ip = "127.0.0.1"
+    # if "--node-ip" in sys.argv:
+    #     node_ip = sys.argv[sys.argv.index("--node-ip") + 1]
+    # ray.init(
+    #     include_dashboard=False,
+    #     _node_ip_address=node_ip,
+    #     num_cpus=3,
+    #     num_gpus=1,
+    # )
     ray.init(
         include_dashboard=False,
-        _node_ip_address=node_ip,
-        num_cpus=3,
-        num_gpus=1,
+        num_cpus=4,
+        num_gpus=0,
     )
 
     tune.registry.register_env("Soccer", create_rllib_env)
@@ -27,7 +32,7 @@ if __name__ == "__main__":
         name="PPO_SP",
         config={
             # system settings
-            "num_gpus": 1,
+            "num_gpus": 0,
             "num_workers": 2,
             "num_envs_per_worker": NUM_ENVS_PER_WORKER,
             "log_level": "INFO",
@@ -50,8 +55,8 @@ if __name__ == "__main__":
             "train_batch_size": 12000,
         },
         stop={
-            "timesteps_total": 20000000,  # 15M
-            # "time_total_s": 14400, # 4h
+            # "timesteps_total": 20000000,  # 15M
+            "time_total_s": 600, # 4h
         },
         checkpoint_freq=100,
         checkpoint_at_end=True,
