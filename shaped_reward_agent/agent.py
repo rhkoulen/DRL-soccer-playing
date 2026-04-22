@@ -4,56 +4,86 @@ from typing import Dict
 
 import gym
 import numpy as np
-import ray
 import torch
-from ray import tune
-from ray.rllib.env.base_env import BaseEnv
-from ray.tune.registry import get_trainable_cls
+import torch.nn as nn
 from soccer_twos import AgentInterface
 
-ALGORITHM = "PPO"
 CHECKPOINT_PATH = os.path.join(
     os.path.dirname(os.path.abspath(__file__)),
-    "../ray_results/PPO_shaped_selfplay/PPO_SoccerShaped_7c1b8_00000_0_2026-04-18_16-52-17/checkpoint_000249/checkpoint-249",
+    "PPO_SoccerShaped_7c1b8_00000_0_2026-04-18_16-52-17/checkpoint_000249/checkpoint-249",
 )
-POLICY_NAME = "default"
+
+
+class FCNet(nn.Module):
+    """Mirrors RLlib's FullyConnectedNetwork with vf_share_layers=True."""
+
+    def __init__(self, obs_size: int, action_size: int, hiddens=(256, 256)):
+        super().__init__()
+        # _hidden_layers
+        layers = []
+        in_size = obs_size
+        for h in hiddens:
+            layers.append(nn.Sequential(nn.Linear(in_size, h)))
+            in_size = h
+        self._hidden_layers = nn.ModuleList(layers)
+
+        # _logits
+        self._logits = nn.Sequential(nn.Linear(in_size, action_size))
+
+        # _value_branch (shared — vf_share_layers=True)
+        self._value_branch = nn.Sequential(nn.Linear(in_size, 1))
+
+    def forward(self, obs: torch.Tensor) -> torch.Tensor:
+        x = obs
+        for layer in self._hidden_layers:
+            x = torch.relu(layer(x))
+        return self._logits(x)
 
 
 class ShapedRewardAgent(AgentInterface):
 
     def __init__(self, env: gym.Env):
         super().__init__()
-        ray.init(ignore_reinit_error=True)
+        self.name = "ShapedRewardAgent"
 
-        config_dir = os.path.dirname(CHECKPOINT_PATH)
-        config_path = os.path.join(config_dir, "params.pkl")
-        if not os.path.exists(config_path):
-            config_path = os.path.join(config_dir, "../params.pkl")
-
-        with open(config_path, "rb") as f:
-            config = pickle.load(f)
-
-        config["num_workers"] = 0
-        config["num_gpus"] = 0
-        config["disable_env_checking"] = True
-        config["env"] = None
-        config["observation_space"] = env.observation_space
-        config["action_space"] = env.action_space
-
-        cls = get_trainable_cls(ALGORITHM)
-        agent = cls(config=config)
         with open(CHECKPOINT_PATH, "rb") as f:
             checkpoint_data = pickle.load(f)
         worker_state = pickle.loads(checkpoint_data["worker"])
-        weights = {k: torch.tensor(v) for k, v in worker_state["state"]["default"]["weights"].items()}
-        agent.get_policy(POLICY_NAME).model.load_state_dict(weights)
-        agent.get_policy(POLICY_NAME).model.eval()
-        self.policy = agent.get_policy(POLICY_NAME)
+        weights = worker_state["state"]["default"]["weights"]
 
+        # Infer sizes from weights
+        obs_size = weights["_hidden_layers.0._model.0.weight"].shape[1]
+        action_size = weights["_logits._model.0.weight"].shape[0]
+
+        self.model = FCNet(obs_size, action_size)
+
+        # Remap keys: RLlib wraps each layer in a Sequential called `_model`
+        # checkpoint: "_hidden_layers.0._model.0.weight"
+        # our model:  "_hidden_layers.0.0.weight"
+        remapped = {}
+        for k, v in weights.items():
+            new_k = k.replace("._model.", ".")
+            remapped[new_k] = torch.tensor(v, dtype=torch.float32)
+
+        self.model.load_state_dict(remapped)
+        self.model.eval()
+
+        # soccer-twos MultiDiscrete [3,3,3] → 9 logits
+        if hasattr(env.action_space, "nvec"):
+            self.branches = list(env.action_space.nvec)
+        else:
+            self.branches = None
+
+    @torch.no_grad()
     def act(self, observation: Dict[int, np.ndarray]) -> Dict[int, np.ndarray]:
         actions = {}
-        for player_id in observation:
-            actions[player_id], *_ = self.policy.compute_single_action(
-                observation[player_id]
-            )
+        for player_id, obs in observation.items():
+            obs_t = torch.tensor(obs, dtype=torch.float32).unsqueeze(0)
+            logits = self.model(obs_t)
+            if self.branches:
+                splits = torch.split(logits, self.branches, dim=-1)
+                action = np.array([torch.argmax(s, dim=-1).item() for s in splits])
+            else:
+                action = torch.argmax(logits, dim=-1).item()
+            actions[player_id] = action
         return actions
