@@ -13,24 +13,27 @@ CHECKPOINT_PATH = os.path.join(
     "PPO_SoccerShaped_7c1b8_00000_0_2026-04-18_16-52-17/checkpoint_000249/checkpoint-249",
 )
 
+# Stub out PolicySpec for Ray 1.4 compatibility
+import ray.rllib.policy.policy as _policy_module
+if not hasattr(_policy_module, 'PolicySpec'):
+    class PolicySpec:
+        def __init__(self, *args, **kwargs): pass
+        def __reduce__(self): return (self.__class__, ())
+    _policy_module.PolicySpec = PolicySpec
+
 
 class FCNet(nn.Module):
     """Mirrors RLlib's FullyConnectedNetwork with vf_share_layers=True."""
 
     def __init__(self, obs_size: int, action_size: int, hiddens=(256, 256)):
         super().__init__()
-        # _hidden_layers
         layers = []
         in_size = obs_size
         for h in hiddens:
             layers.append(nn.Sequential(nn.Linear(in_size, h)))
             in_size = h
         self._hidden_layers = nn.ModuleList(layers)
-
-        # _logits
         self._logits = nn.Sequential(nn.Linear(in_size, action_size))
-
-        # _value_branch (shared — vf_share_layers=True)
         self._value_branch = nn.Sequential(nn.Linear(in_size, 1))
 
     def forward(self, obs: torch.Tensor) -> torch.Tensor:
@@ -51,15 +54,11 @@ class ShapedRewardAgent(AgentInterface):
         worker_state = pickle.loads(checkpoint_data["worker"])
         weights = worker_state["state"]["default"]["weights"]
 
-        # Infer sizes from weights
         obs_size = weights["_hidden_layers.0._model.0.weight"].shape[1]
         action_size = weights["_logits._model.0.weight"].shape[0]
 
         self.model = FCNet(obs_size, action_size)
 
-        # Remap keys: RLlib wraps each layer in a Sequential called `_model`
-        # checkpoint: "_hidden_layers.0._model.0.weight"
-        # our model:  "_hidden_layers.0.0.weight"
         remapped = {}
         for k, v in weights.items():
             new_k = k.replace("._model.", ".")
@@ -68,7 +67,6 @@ class ShapedRewardAgent(AgentInterface):
         self.model.load_state_dict(remapped)
         self.model.eval()
 
-        # soccer-twos MultiDiscrete [3,3,3] → 9 logits
         if hasattr(env.action_space, "nvec"):
             self.branches = list(env.action_space.nvec)
         else:
