@@ -1,1 +1,1 @@
-from .agent import RLlibLSTMAgent
+from .agent import CustomAgent
