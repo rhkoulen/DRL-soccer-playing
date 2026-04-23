@@ -1,11 +1,20 @@
+import ray
+from ray import tune
+
 import numpy as np
 from ray.rllib.agents.ppo import PPOTrainer
 from soccer_twos import AgentInterface
-from common import *
+
+from .my_utils import create_rllib_env
+from .common import *
+
 
 class RLlibLSTMAgent(AgentInterface):
     def __init__(self, env):
         super().__init__()
+        ray.init()
+
+        tune.registry.register_env("Soccer", create_rllib_env)
         self.name = "LSTM Agent"
 
         config = {
@@ -13,8 +22,6 @@ class RLlibLSTMAgent(AgentInterface):
             "num_gpus": 0,
             "framework": "torch",
             "env_config": ENV_CONFIG,
-            "observation_space": env.observation_space,
-            "action_space": env.action_space,
             "model": MODEL_CONFIG,
         }
 

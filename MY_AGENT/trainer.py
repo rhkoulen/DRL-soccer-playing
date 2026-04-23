@@ -1,51 +1,38 @@
 import ray
 from ray import tune
-from soccer_twos import EnvType
 
-from utils import create_rllib_env
+from .my_utils import create_rllib_env
+from .common import *
 
-
-NUM_ENVS_PER_WORKER = 3
 
 
 if __name__ == "__main__":
     ray.init()
 
     tune.registry.register_env("Soccer", create_rllib_env)
-    temp_env = create_rllib_env({"variation": EnvType.multiagent_player})
-    obs_space = temp_env.observation_space
-    act_space = temp_env.action_space
-    temp_env.close()
 
     analysis = tune.run(
         "PPO",
-        name="PPO_selfplay_1",
+        name="PPO_LSTM_GUY",
         config={
             # system settings
-            "num_gpus": 1,
-            "num_workers": 6,
+            "num_gpus": NUM_GPUS,
+            "num_workers": NUM_CPUS,
             "num_envs_per_worker": NUM_ENVS_PER_WORKER,
             "log_level": "INFO",
             "framework": "torch",
             # RL setup
-            "multiagent": {
-                "policies": {
-                    "default": (None, obs_space, act_space, {}),
-                },
-                "policy_mapping_fn": tune.function(lambda _: "default"),
-                "policies_to_train": ["default"],
-            },
             "env": "Soccer",
-            "env_config": {
-                "num_envs_per_worker": NUM_ENVS_PER_WORKER,
-                "variation": EnvType.multiagent_player,
-            },
+            "env_config": ENV_CONFIG,
+            "model": MODEL_CONFIG,
+            "rollout_fragment_length": 500,
+            "train_batch_size": 500 * NUM_CPUS * NUM_ENVS_PER_WORKER,
         },
         stop={
-            "timesteps_total": 15000000,  # 15M
-            # "time_total_s": 14400, # 4h
+            "timesteps_total": 20000000,
+            "time_total_s": 1200,
         },
-        checkpoint_freq=100,
+        checkpoint_freq=1,
         checkpoint_at_end=True,
         local_dir="./ray_results",
         # restore="./ray_results/PPO_selfplay_1/PPO_Soccer_ID/checkpoint_00X/checkpoint-X",
