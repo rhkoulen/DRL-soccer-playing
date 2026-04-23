@@ -11,7 +11,7 @@ from ray import tune
 from ray.rllib.agents.callbacks import DefaultCallbacks
 
 from utils import create_rllib_env
-from TEAM26_ROBOCUP_AGENT.reward_wrapper import RewardShapingWrapper
+from .reward_wrapper import RewardShapingWrapper
 
 OUTPUT_DIR = os.path.dirname(os.path.abspath(__file__))
 
