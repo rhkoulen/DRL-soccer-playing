@@ -77,11 +77,11 @@ SPREAD_THRESHOLD = 0.55
 
 class RewardShapingWrapper(RLLibWrapper):
     def __init__(self, env,
-        ball_proximity_weight: float = 0.005,
-        ball_progress_weight: float = 0.01,
-        possession_weight: float = 0.002,
-        kick_weight: float = 0.05,
-        spread_weight: float = 0.003,
+        ball_proximity_weight: float = 0.0,# = 0.005, # late stage training
+        ball_progress_weight: float = 0.0,# = 0.01, # late stage training
+        possession_weight: float = 0.0,# = 0.002, # late stage training
+        kick_weight: float = 0.1,# = 0.05, # late stage training
+        spread_weight: float = 0.1,# = 0.003, # late stage training
     ):
         super().__init__(env)
         self.ball_proximity_weight = ball_proximity_weight
@@ -202,3 +202,66 @@ def policy_mapping_fn(agent_id, *_):
         ["default", "opponent_1", "opponent_2", "opponent_3"],
         p=[0.50, 0.25, 0.125, 0.125],
     )
+
+
+### League Play against Other Bots ###
+import random
+import os
+import sys
+sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.abspath(__file__))))
+from A_CEIA_AGENT.agent_ray import RayAgent
+from A_NATE_AGENT.base_ppo_agent import BasePPOAgent
+from A_RANDOM_AGENT.agent_random import RandomAgent
+# from A_SHOURIK_AGENT.agent import ShapedRewardAgent # not including Shourik's because I want to beat his and it would be unreasonable to say I beat his after training against it
+
+OPPONENT_CLASSES = [RayAgent, BasePPOAgent, RandomAgent]
+
+from ray.rllib.env.multi_agent_env import MultiAgentEnv
+
+class OpponentWrapper(MultiAgentEnv):
+    def __init__(self, env):
+        super().__init__()
+        self.env = env
+        self.observation_space = env.observation_space
+        self.action_space = env.action_space
+        self._agent_ids = {0, 1}
+        self._last_full_obs = {}
+
+        # construct all opponents once
+        self._opponents = [cls(env) for cls in OPPONENT_CLASSES]
+        self.opponent = None
+
+    def _new_opponent(self):
+        self.opponent = random.choice(self._opponents)
+        if hasattr(self.opponent, 'reset'):
+            self.opponent.reset()
+
+    def reset(self):
+        self._new_opponent()
+        obs = self.env.reset()
+        self._last_full_obs = obs
+        return {k: v for k, v in obs.items() if k < 2}
+
+    def step(self, actions):
+        opp_obs = {k: self._last_full_obs[k] for k in [2, 3] if k in self._last_full_obs}
+        opp_actions = self.opponent.act(opp_obs)
+        full_actions = {**actions, **opp_actions}
+
+        obs, rewards, dones, infos = self.env.step(full_actions)
+        self._last_full_obs = obs
+
+        filtered_dones = {k: v for k, v in dones.items() if isinstance(k, int) and k < 2}
+        filtered_dones['__all__'] = dones.get('__all__', False)
+
+        return (
+            {k: v for k, v in obs.items() if isinstance(k, int) and k < 2},
+            {k: v for k, v in rewards.items() if isinstance(k, int) and k < 2},
+            filtered_dones,
+            {k: v for k, v in infos.items() if isinstance(k, int) and k < 2},
+        )
+
+    def close(self):
+        self.env.close()
+
+def create_opponent_env(env_config={}):
+    return OpponentWrapper(create_rllib_env(env_config))

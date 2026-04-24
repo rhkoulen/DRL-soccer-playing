@@ -10,7 +10,7 @@ from .my_utils import create_rllib_env, create_shaped_env, policy_mapping_fn
 from .common import *
 
 
-CHECKPOINT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoint_000650', 'checkpoint-650')
+CHECKPOINT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoint_001000', 'checkpoint-1000')
 
 
 class CustomAgent(AgentInterface):
