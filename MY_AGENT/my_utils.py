@@ -77,11 +77,11 @@ SPREAD_THRESHOLD = 0.55
 
 class RewardShapingWrapper(RLLibWrapper):
     def __init__(self, env,
-        ball_proximity_weight: float = 0.0,# = 0.005, # late stage training
-        ball_progress_weight: float = 0.0,# = 0.01, # late stage training
-        possession_weight: float = 0.0,# = 0.002, # late stage training
-        kick_weight: float = 0.1,# = 0.05, # late stage training
-        spread_weight: float = 0.1,# = 0.003, # late stage training
+        ball_proximity_weight: float = 0.005,
+        ball_progress_weight: float = 0.01,
+        possession_weight: float = 0.002,
+        kick_weight: float = 0.05,
+        spread_weight: float = 0.003,
     ):
         super().__init__(env)
         self.ball_proximity_weight = ball_proximity_weight

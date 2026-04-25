@@ -10,7 +10,7 @@ from .my_utils import create_rllib_env, create_shaped_env, policy_mapping_fn
 from .common import *
 
 
-CHECKPOINT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoint_001000', 'checkpoint-1000')
+CHECKPOINT = os.path.join(os.path.dirname(os.path.abspath(__file__)), 'checkpoint_001500', 'checkpoint-1500')
 
 
 class CustomAgent(AgentInterface):
@@ -18,7 +18,7 @@ class CustomAgent(AgentInterface):
         super().__init__()
         self.name = 'LSTM Agent'
         ray.init(ignore_reinit_error=True)
-        tune.registry.register_env('_', create_shaped_env) # doesn't really matter, since ray won't get any workers, I just need to spin it up to get my LSTM
+        tune.registry.register_env('_', create_rllib_env) # doesn't really matter, since ray won't get any workers, I just need to spin it up to get my LSTM
 
         self.trainer = PPOTrainer(config={
             'framework': 'torch',
