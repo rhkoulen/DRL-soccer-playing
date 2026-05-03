@@ -96,9 +96,9 @@ class ExtendedQMixAgent(AgentInterface):
             "multiagent": {
                 "policies": {
                     # Both policies must exist to match the checkpoint structure
-                    "default_policy": (None, group_obs_space, group_act_space, {}),
+                    "qmix_policy": (None, group_obs_space, group_act_space, {}),
                 },
-                "policy_mapping_fn": lambda agent_id, **kwargs: "default_policy",
+                "policy_mapping_fn": lambda agent_id, **kwargs: "qmix_policy",
             },
         }
 
@@ -129,7 +129,7 @@ class ExtendedQMixAgent(AgentInterface):
                 act, state_out, _ = self.trainer.compute_action(
                     observation=group_obs,
                     state=self._states[team_key],
-                    policy_id="default_policy",
+                    policy_id="qmix_policy",
                     full_fetch=True 
                 )
                 
